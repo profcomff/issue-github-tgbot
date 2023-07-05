@@ -3,4 +3,5 @@ requests
 gql[all]
 aiohttp
 pydantic
+pydantic-settings
 pydantic[dotenv]
