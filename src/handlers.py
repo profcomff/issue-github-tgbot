@@ -18,6 +18,10 @@ settings = Settings()
 github = Github(settings.GH_ORGANIZATION_NICKNAME, settings.GH_ACCOUNT_TOKEN)
 
 
+async def native_error_handler(update, context):
+    pass
+
+
 def error_handler(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
@@ -31,10 +35,10 @@ def error_handler(func):
 
 def str_sender_info(update):
     if update.callback_query is None:
-        return f'[{update.message.from_user.id} {update.message.from_user.full_name}]'
+        return f'[{update.message.from_user.id} {update.message.from_user.full_name}] [  ]'
     else:
         return f'[{update.callback_query.from_user.id} {update.callback_query.from_user.full_name}] ' \
-               f'[{update.callback_query.message.id}] callback_data={update.callback_query.data}]'
+               f'[{update.callback_query.message.id}] callback_data={update.callback_query.data}'
 
 
 @error_handler

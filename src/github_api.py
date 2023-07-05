@@ -5,6 +5,8 @@ import logging
 import requests
 from gql import gql, Client
 from gql.transport.requests import RequestsHTTPTransport
+from gql.transport.requests import log as requests_logger
+requests_logger.setLevel(logging.WARNING)
 
 
 class Github:
