@@ -26,14 +26,14 @@ ans = {
 <a href="https://github.com">link</a>
 ''',
     'markdown_guide_md': '''
-## Синтаксис Markdown 
+## А это синтаксис Markdown 
 ### Это раздел 3 уровня
 * list_item
 * list_item
   * sub_list_item
 - [ ] Empty checkbox
 - [x] Done checkbox
-$latex = \\frac{e^5}{\pi}$
+$latex = \\frac{e^5}{\\pi}$
 **bold**
 *italic*
 `inline_code_block`

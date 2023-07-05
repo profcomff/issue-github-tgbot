@@ -3,6 +3,8 @@
 import logging
 
 import requests
+from gql import gql, Client
+from gql.transport.requests import RequestsHTTPTransport
 
 
 class Github:
@@ -21,6 +23,25 @@ class Github:
             'Content-Type': 'application/x-www-form-urlencoded'
         }
 
+        self.transport = RequestsHTTPTransport(
+            url='https://api.github.com/graphql',
+            verify=True,
+            retries=3,
+            headers=self.headers
+        )
+
+        with open('src/graphql/schema.github.graphql') as f:
+            schema_str = f.read()
+
+        self.client = Client(transport=self.transport, schema=schema_str)
+        self.__read_queries()
+
+    def __read_queries(self):
+        with open('src/graphql/get_repos.graphql') as f:
+            self.q_get_repos = gql(f.read())
+        with open('src/graphql/add_to_scrum.graphql') as f:
+            self.q_add_to_scrum = gql(f.read())
+
     def open_issue(self, repo, title, comment):
         payload = {'title': title, 'body': comment, 'projects': f'{self.organization_nickname}/7'}
         r = self.session.post(self.issue_url.format(repo), headers=self.headers, json=payload)
@@ -33,64 +54,17 @@ class Github:
         r = self.session.get(self.org_repos_url, headers=self.headers, params=data)
         return r.json()
 
-    def get_repos(self, cursor=None):
-        GRAPH_QL_URL = 'https://api.github.com/graphql'
-        # data = {'sort': 'pushed', 'per_page': 9, 'page': page}
-        # r = requests.get(self.org_repos_url, headers=self.headers, params=data)
-        # return r.json()
-        if cursor is None:
-            GET_REPOS = {'query': """{
-              repos: search(
-                query: "org:profcomff archived:false fork:true is:public sort:updated"
-                type: REPOSITORY
-                first: 9
-              ) {
-                repositoryCount
-                pageInfo {
-                  hasNextPage
-                  endCursor
-                  hasPreviousPage
-                  startCursor
-                }
-                edges {
-                  node {
-                    ... on Repository {
-                      name
-                      url
-                    }
-                  }
-                }
-              }
-            }"""}
-        else:
-            first_or_last = 'first' if 'first' in cursor else 'last'
-            GET_REPOS = {'query': """{
-              repos: search(
-                query: "org:profcomff archived:false fork:true is:public sort:updated"
-                type: REPOSITORY
-                %s: 9
-                %s
-              ) {
-                repositoryCount
-                pageInfo {
-                  hasNextPage
-                  endCursor
-                  hasPreviousPage
-                  startCursor
-                }
-                edges {
-                  node {
-                    ... on Repository {
-                      name
-                      url
-                    }
-                  }
-                }
-              }
-            }""" % (first_or_last, cursor)}
-        r = self.session.post(url=GRAPH_QL_URL, json=GET_REPOS, headers=self.headers)
-        resp = r.json()
-        return resp['data']['repos']
+    def get_repos(self, page_info):
+        params = {'gh_query': f'org:{self.organization_nickname} archived:false fork:true is:public sort:updated'}
+        if page_info == 'repos_start':
+            r = self.client.execute(self.q_get_repos, operation_name='getReposInit', variable_values=params)
+        elif page_info.startswith('repos_after'):
+            params['cursor'] = page_info.split('_')[2]
+            r = self.client.execute(self.q_get_repos, operation_name='getReposAfter', variable_values=params)
+        else:  # repos_before
+            params['cursor'] = page_info.split('_')[2]
+            r = self.client.execute(self.q_get_repos, operation_name='getReposBefore', variable_values=params)
+        return r['repos']
 
     def close_issue(self, issue_url, comment=''):
         url = issue_url.replace('https://github.com', 'https://api.github.com/repos')
@@ -120,38 +94,24 @@ class Github:
         r = self.session.patch(url, headers=self.headers, json=payload)
         return r
 
-
-def add_to_scrum(headers, issue_id):
-    try:
-        GRAPH_QL_URL = 'https://api.github.com/graphql'
-        PROJECT_ID = 'PVT_kwDOBaPiZM4AFiz-'
-        FIELD_ID = 'PVTSSF_lADOBaPiZM4AFiz-zgDMeOc'
-        BACKLOG_OPTION_ID = '4a4a1bb5'
-
-        add_item_to_scrum = {'query': 'mutation{ addProjectV2ItemById(input: {projectId: "%s" contentId: "%s"}) { '
-                                      'item { id } } }' % (PROJECT_ID, issue_id)}
-        with requests.session() as session:
-            r = session.post(url=GRAPH_QL_URL, json=add_item_to_scrum, headers=headers)
-
-            if 'errors' in r.json():
-                logging.warning(f'Node {issue_id} not added to scrum. Reason: {r.json()["errors"]}')
-                return
-            logging.info(f'Node {issue_id} successfully added to scrum Твой ФФ!')
-
-            project_node_id = r.json()['data']['addProjectV2ItemById']['item']['id']
-            set_item_status_to_scrum = {'query': 'mutation {updateProjectV2ItemFieldValue(input: '
-                                                 '{projectId: "%s", itemId: "%s", fieldId: '
-                                                 '"%s",value: {singleSelectOptionId: "%s"}}) '
-                                                 '{projectV2Item{id}}}' % (PROJECT_ID, project_node_id,
-                                                                           FIELD_ID, BACKLOG_OPTION_ID)}
-
-            r = session.post(url=GRAPH_QL_URL, json=set_item_status_to_scrum, headers=headers)
-            if 'errors' in r.json():
-                logging.warning(f'Node {issue_id} not set status. Reason: {r.json()["errors"]}')
-            else:
-                logging.info(f'Node {issue_id} successfully set backlog status.')
-    except Exception as err:
-        logging.error(f'Scrum adding FAILED: {err.args}')
+    def add_to_scrum(self, node_id):
+        try:
+            params = {'projectId': 'PVT_kwDOBaPiZM4AFiz-',
+                      'contentId': node_id}
+            r = self.client.execute(self.q_add_to_scrum, operation_name='addToScrum', variable_values=params)
+    
+            item_id = r['addProjectV2ItemById']['item']['id']
+            logging.info(f'Node {node_id} successfully added to scrum with contentId= {item_id}')
+    
+            params = {'projectId': 'PVT_kwDOBaPiZM4AFiz-',
+                      'itemId': item_id,
+                      'fieldId': 'PVTSSF_lADOBaPiZM4AFiz-zgDMeOc',
+                      'value': '4a4a1bb5'}  # BACKLOG_OPTION_ID
+            r = self.client.execute(self.q_add_to_scrum, operation_name='setScrumStatus', variable_values=params)
+            if 'errors' in r:
+                logging.warning(f'''itemId={item_id} not set status. Reason: {r['errors']}''')
+        except Exception as err:
+            logging.error(f'Scrum adding FAILED: {err.args}')
 
 
 class GithubIssueDisabledError(Exception):

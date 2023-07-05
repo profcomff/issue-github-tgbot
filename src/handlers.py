@@ -11,15 +11,11 @@ from telegram.constants import ParseMode
 
 from src.settings import Settings
 from src.issue_message import TgIssueMessage
-from src.github_api import Github, GithubIssueDisabledError, add_to_scrum
+from src.github_api import Github, GithubIssueDisabledError
 from src.answers import ans
 
 settings = Settings()
 github = Github(settings.GH_ORGANIZATION_NICKNAME, settings.GH_ACCOUNT_TOKEN)
-
-
-async def native_error_handler(update, context):
-    pass
 
 
 def error_handler(func):
@@ -33,28 +29,37 @@ def error_handler(func):
     return wrapper
 
 
+def str_sender_info(update):
+    if update.callback_query is None:
+        return f'[{update.message.from_user.id} {update.message.from_user.full_name}]'
+    else:
+        return f'[{update.callback_query.from_user.id} {update.callback_query.from_user.full_name}] ' \
+               f'[{update.callback_query.message.id}] callback_data={update.callback_query.data}]'
+
+
 @error_handler
 async def handler_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logging.info(f'{str_sender_info(update)} call /start')
     await context.bot.send_message(chat_id=update.message.chat_id,
                                    message_thread_id=update.message.message_thread_id,
                                    text=ans['start'].format(settings.GH_ORGANIZATION_NICKNAME),
                                    disable_web_page_preview=True,
                                    parse_mode=ParseMode('HTML'))
-    logging.info(f'[{update.message.from_user.id} {update.message.from_user.full_name}] call /start')
 
 
 @error_handler
 async def handler_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logging.info(f'{str_sender_info(update)} call /help')
     await context.bot.send_message(chat_id=update.message.chat_id,
                                    message_thread_id=update.message.message_thread_id,
                                    text=ans['help'].format(settings.BOT_NICKNAME),
                                    disable_web_page_preview=True,
                                    parse_mode=ParseMode('HTML'))
-    logging.info(f'[{update.message.from_user.id} {update.message.from_user.full_name}] call /help')
 
 
 @error_handler
 async def handler_md_guide(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logging.info(f'{str_sender_info(update)} call /md_guide')
     await context.bot.send_message(chat_id=update.message.chat_id,
                                    message_thread_id=update.message.message_thread_id,
                                    text=ans['markdown_guide_tg'],
@@ -65,13 +70,11 @@ async def handler_md_guide(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                    text=ans['markdown_guide_md'],
                                    disable_web_page_preview=True,
                                    )
-    logging.info(f'[{update.message.from_user.id} {update.message.from_user.full_name}] call /md_guide')
 
 
 @error_handler
 async def handler_button(update: Update, context: CallbackContext) -> None:
-    logging.info(f'[{update.callback_query.from_user.id} {update.callback_query.from_user.full_name}]'
-                 f'[{update.callback_query.message.id}] button pressed with callback_data={update.callback_query.data}')
+    logging.info(f'{str_sender_info(update)}')
     callback_data = update.callback_query.data
     text = update.callback_query.message.text_html
 
@@ -94,8 +97,7 @@ async def handler_button(update: Update, context: CallbackContext) -> None:
         keyboard, text = __reopen_issue(update)
 
     elif callback_data.startswith('repos_'):
-        page_info = callback_data.split('_')[1]
-        keyboard = __keyboard_repos(page_info)
+        keyboard = __keyboard_repos(callback_data)
 
     elif callback_data.startswith('repo_'):
         keyboard, text = await __create_issue(update, context)
@@ -109,8 +111,7 @@ async def handler_button(update: Update, context: CallbackContext) -> None:
 
     else:
         keyboard, text = None, 'Видимо бот обновился, эту issue нельзя настроить'
-        logging.error(f'[{update.callback_query.from_user.id} {update.callback_query.from_user.full_name}]'
-                      f' button pressed with old callback_data={callback_data}')
+        logging.error(f'Old callback: {str_sender_info(update)}')
     await update.callback_query.edit_message_text(text=text,
                                                   reply_markup=keyboard,
                                                   disable_web_page_preview=True,
@@ -132,14 +133,13 @@ async def handler_message(update: Update, context: CallbackContext) -> None:
     if len(text) == 0:
         text = 'После упоминания требуется ввести название issue. Больше в /help'
         keyboard = None
-        logging.warning(f'[{update.message.from_user.id} {update.message.from_user.full_name}] call with no title')
+        logging.warning(f'{str_sender_info(update)} call with no title')
     else:
         imessage = TgIssueMessage(text, from_user=True)
         text = imessage.get_text()
         keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('⚠️ Select repo to create',
                                                                callback_data='repos_start')]])
-        logging.info(f'[{update.message.from_user.id} {update.message.from_user.full_name}]'
-                     f' create draft with message:{repr(update.message.text)}')
+        logging.info(f'{str_sender_info(update)} create draft with message:{repr(update.message.text)}')
 
     await context.bot.send_message(chat_id=update.message.chat_id,
                                    message_thread_id=update.message.message_thread_id,
@@ -149,12 +149,8 @@ async def handler_message(update: Update, context: CallbackContext) -> None:
                                    parse_mode=ParseMode('HTML'))
 
 
-def __keyboard_repos(cursor):
-    print(cursor)
-    if cursor == 'start':
-        repos_info = github.get_repos()
-    else:
-        repos_info = github.get_repos(cursor)
+def __keyboard_repos(page_info):
+    repos_info = github.get_repos(page_info)
 
     buttons = []
     for repo in repos_info['edges']:
@@ -162,13 +158,13 @@ def __keyboard_repos(cursor):
 
     buttons.append([])
     if repos_info['pageInfo']['hasPreviousPage']:
-        cb_data = f'''repos_before: "{repos_info['pageInfo']['startCursor']}"'''
+        cb_data = f'''repos_before_{repos_info['pageInfo']['startCursor']}'''
         buttons[-1].append(InlineKeyboardButton('⬅️', callback_data=cb_data))
 
     buttons[-1].append(InlineKeyboardButton('↩️ Выйти', callback_data='quite'))
 
     if repos_info['pageInfo']['hasNextPage']:
-        cb_data = f'''repos_after: "{repos_info['pageInfo']['endCursor']}"'''
+        cb_data = f'''repos_after_{repos_info['pageInfo']['endCursor']}'''
         buttons[-1].append(InlineKeyboardButton('➡️', callback_data=cb_data))
 
     return InlineKeyboardMarkup(buttons)
@@ -203,9 +199,9 @@ async def __create_issue(update: Update, context: ContextTypes.DEFAULT_TYPE):
         r = github.open_issue(repo_name, imessage.issue_title, github_comment)
     except GithubIssueDisabledError:
         await context.bot.answer_callback_query(update.callback_query.id, 'У этого репозитория отключены Issue.')
-        logging.warning(f'[{update.callback_query.from_user.id} {update.callback_query.from_user.full_name}]'
-                        f'[{update.callback_query.message.id}] Try to open issue, but issue for {repo_name} disabled')
-        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('⚠️ Select repo to create', callback_data='repos_start')]])
+        logging.warning(f'{str_sender_info(update)} Try to open issue, but issue for {repo_name} disabled')
+        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('⚠️ Select repo to create',
+                                                               callback_data='repos_start')]])
         return keyboard, imessage.get_text()
 
     if r.status_code == 201:
@@ -215,15 +211,13 @@ async def __create_issue(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('↩️', callback_data='quite'),
                                           InlineKeyboardButton('👤', callback_data='assign_1'),
                                           InlineKeyboardButton('❌', callback_data='close')]])
-        logging.info(f'[{update.callback_query.from_user.id} {update.callback_query.from_user.full_name}]'
-                     f'[{update.callback_query.message.id}] Succeeded open Issue: {response["html_url"]}')
-        threading.Thread(target=add_to_scrum, args=(github.headers, response['node_id'])).start()
+        logging.info(f'{str_sender_info(update)} Succeeded open Issue: {response["html_url"]}')
+        threading.Thread(target=github.add_to_scrum, args=(response['node_id'], )).start()
 
     else:
         await context.bot.answer_callback_query(update.callback_query.id, f'Response code: {r.status_code}')
         keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('Настроить', callback_data='setup')]])
-        logging.error(f'[{update.callback_query.from_user.id} {update.callback_query.from_user.full_name}]'
-                      f'[{update.callback_query.message.id}] Failed to open Issue [{r.status_code}] {r.text}')
+        logging.error(f'{str_sender_info(update)} Failed to open Issue [{r.status_code}] {r.text}')
 
     return keyboard, imessage.get_text()
 
@@ -263,8 +257,7 @@ def __close_issue(update: Update):
     text = imessage.get_close_message(update.callback_query.from_user.full_name)
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('🔄 Reopen', callback_data='reopen')]])
 
-    logging.info(f'[{update.callback_query.from_user.id} {update.callback_query.from_user.full_name}]'
-                 f'[{update.callback_query.message.id}] Succeeded closed Issue: {imessage.issue_url}')
+    logging.info(f'{str_sender_info(update)} Succeeded closed Issue: {imessage.issue_url}')
     return keyboard, text
 
 
@@ -286,8 +279,7 @@ def __reopen_issue(update):
     imessage.comment = r['body'].split('\n>')[0]
 
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('Настроить', callback_data='setup')]])
-    logging.info(f'[{update.callback_query.from_user.id} {update.callback_query.from_user.full_name}]'
-                 f'[{update.callback_query.message.id}] Succeeded Reopen Issue: {imessage.issue_url}')
+    logging.info(f'{str_sender_info(update)} Succeeded Reopen Issue: {imessage.issue_url}')
     return keyboard, imessage.get_text()
 
 
