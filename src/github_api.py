@@ -15,7 +15,6 @@ class Github:
         self.settings = settings
         self.organization_nickname = settings.GH_ORGANIZATION_NICKNAME
         self.issue_url = 'https://api.github.com/repos/' + settings.GH_ORGANIZATION_NICKNAME + '/{}/issues'
-        self.org_repos_url = f'https://api.github.com/orgs/{settings.GH_ORGANIZATION_NICKNAME}/repos'
         self.org_members_url = f'https://api.github.com/orgs/{settings.GH_ORGANIZATION_NICKNAME}/members'
 
         self.session = requests.Session()
