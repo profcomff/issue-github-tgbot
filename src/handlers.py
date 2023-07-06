@@ -17,7 +17,7 @@ from src.github_api import Github, GithubIssueDisabledError
 from src.answers import ans
 
 settings = Settings()
-github = Github(settings.GH_ORGANIZATION_NICKNAME, settings.GH_ACCOUNT_TOKEN)
+github = Github(settings)
 
 
 async def native_error_handler(update, context):
@@ -209,13 +209,11 @@ async def __create_issue(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                           InlineKeyboardButton('👤', callback_data='assign_1'),
                                           InlineKeyboardButton('❌', callback_data='close')]])
         logging.info(f'''{str_sender_info(update)} Succeeded open Issue: {r['createIssue']['issue']['url']}''')
-        # threading.Thread(target=github.add_to_scrum, args=(r['node_id'], )).start() # TODO: auto add scrum
+        if settings.GH_SCRUM_STATE:
+            threading.Thread(target=github.add_to_scrum, args=(r['createIssue']['issue']['id'], )).start()
 
     except TransportQueryError as err:
-        await context.bot.answer_callback_query(update.callback_query.id,
-                                                f'''Failed to open Issue {imessage.issue_title} '''
-                                                f'''\n{err.errors[0]['message']}''')
-
+        await context.bot.answer_callback_query(update.callback_query.id, f'''{err.errors[0]['message']}''')
         keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('⚠️ Select repo to create',
                                                                callback_data='repos_start')]])
         logging.error(f'{str_sender_info(update)} Failed to open Issue: {err.args}')
