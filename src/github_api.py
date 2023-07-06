@@ -43,27 +43,31 @@ class Github:
             self.q_get_repos = gql(f.read())
         with open('src/graphql/add_to_scrum.graphql') as f:
             self.q_add_to_scrum = gql(f.read())
+        with open('src/graphql/issue_actions.graphql') as f:
+            self.q_issue_actions = gql(f.read())
 
-    def open_issue(self, repo, title, comment):
-        payload = {'title': title, 'body': comment, 'projects': f'{self.organization_nickname}/7'}
-        r = self.session.post(self.issue_url.format(repo), headers=self.headers, json=payload)
-        if 'Issues are disabled for this repo' in r.text:
-            raise GithubIssueDisabledError
+    def open_issue(self, repo_id, title, body):
+        # payload = {'title': title, 'body': comment, 'projects': f'{self.organization_nickname}/7'}
+        # r = self.session.post(self.issue_url.format(repo), headers=self.headers, json=payload)
+        params = {'repositoryId': repo_id, 'title': title, 'body': body}
+        r = self.client.execute(self.q_issue_actions, operation_name='CreateIssue', variable_values=params)
+
+        # if 'Issues are disabled for this repo' in r.text:
+        #     raise GithubIssueDisabledError
+        print(r)
         return r
-
-    def old_get_repos(self, page=1):
-        data = {'sort': 'pushed', 'per_page': 9, 'page': page}
-        r = self.session.get(self.org_repos_url, headers=self.headers, params=data)
-        return r.json()
 
     def get_repos(self, page_info):
         params = {'gh_query': f'org:{self.organization_nickname} archived:false fork:true is:public sort:updated'}
+        # repos_start - start page
         if page_info == 'repos_start':
             r = self.client.execute(self.q_get_repos, operation_name='getReposInit', variable_values=params)
+        # repos_after - next page
         elif page_info.startswith('repos_after'):
             params['cursor'] = page_info.split('_')[2]
             r = self.client.execute(self.q_get_repos, operation_name='getReposAfter', variable_values=params)
-        else:  # repos_before
+        # repos_before - previous page
+        else:
             params['cursor'] = page_info.split('_')[2]
             r = self.client.execute(self.q_get_repos, operation_name='getReposBefore', variable_values=params)
         return r['repos']
@@ -84,6 +88,7 @@ class Github:
         url = issue_url.replace('https://github.com', 'https://api.github.com/repos')
         r = self.session.get(url, headers=self.headers)
         return r.json(), r.status_code
+
 
     def get_members(self, page):
         data = {'sort': 'full_name', 'per_page': 9, 'page': page}
