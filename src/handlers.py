@@ -213,7 +213,16 @@ async def __create_issue(update: Update, context: ContextTypes.DEFAULT_TYPE):
             threading.Thread(target=github.add_to_scrum, args=(r['createIssue']['issue']['id'], )).start()
 
     except TransportQueryError as err:
-        await context.bot.answer_callback_query(update.callback_query.id, f'''{err.errors[0]['message']}''')
+        repo_name = 'Unknown'
+        for kb in update.callback_query.message.reply_markup.inline_keyboard:
+            if kb[0].callback_data == update.callback_query.data:
+                repo_name = kb[0].text
+
+        await context.bot.send_message(chat_id=update.callback_query.message.chat_id,
+                                       message_thread_id=update.callback_query.message.message_thread_id,
+                                       text=f'''{repo_name}: {err.errors[0]['message']}''',
+                                       disable_web_page_preview=True,
+                                       )
         keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('⚠️ Select repo to create',
                                                                callback_data='repos_start')]])
         logging.error(f'{str_sender_info(update)} Failed to open Issue: {err.args}')
