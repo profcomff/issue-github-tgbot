@@ -50,8 +50,7 @@ class Github:
 
     def open_issue(self, repo_id, title, body):
         params = {'repositoryId': repo_id, 'title': title, 'body': body}
-        r = self.client.execute(self.q_issue_actions, operation_name='CreateIssue', variable_values=params)
-        return r
+        return self.client.execute(self.q_issue_actions, operation_name='CreateIssue', variable_values=params)
 
     def get_repos(self, page_info):
         params = {'gh_query': f'org:{self.organization_nickname} archived:false fork:true is:public sort:updated'}

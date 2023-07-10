@@ -15,20 +15,35 @@ mutation CreateIssue ($repositoryId: ID!, $title: String!, $body: String!) {
   }
 }
 
-mutation CreateIssueScrum ($repositoryId: ID!, $title: String!, $body: String!, $projectIds: [ID!]) {
-  createIssue(
-    input: {
-      repositoryId: $repositoryId,
-      title: $title,
-      body: $body,
-      projectIds: $projectIds
-    }
-  ) {
-    issue {
-      number
-      body
-      url
-      id
-    }
-  }
-}
+#mutation CloseIssue($issueId: ID!) {
+#  closeIssue(
+#    input: {
+#      issueId: $issueId
+#    }
+#  ) {
+#    issue {
+#      number
+#      body
+#      url
+#      id
+#    }
+#  }
+#}
+
+#mutation CreateIssueScrum ($repositoryId: ID!, $title: String!, $body: String!, $projectIds: [ID!]) {
+#  createIssue(
+#    input: {
+#      repositoryId: $repositoryId,
+#      title: $title,
+#      body: $body,
+#      projectIds: $projectIds
+#    }
+#  ) {
+#    issue {
+#      number
+#      body
+#      url
+#      id
+#    }
+#  }
+#}
