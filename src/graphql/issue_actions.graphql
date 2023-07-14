@@ -8,7 +8,6 @@ mutation CreateIssue ($repositoryId: ID!, $title: String!, $body: String!) {
     ) {
         issue {
             number
-            body
             url
             id
         }
@@ -24,7 +23,6 @@ mutation CloseIssue($issueId: ID!) {
     ) {
         issue {
             number
-            body
             url
             id
         }
@@ -71,21 +69,3 @@ mutation SetIssueAssign($issueId: ID!, $assigneeIds: [ID!]){
         }
     }
 }
-
-#mutation CreateIssueScrum ($repositoryId: ID!, $title: String!, $body: String!, $projectIds: [ID!]) {
-#  createIssue(
-#    input: {
-#      repositoryId: $repositoryId,
-#      title: $title,
-#      body: $body,
-#      projectIds: $projectIds
-#    }
-#  ) {
-#    issue {
-#      number
-#      body
-#      url
-#      id
-#    }
-#  }
-#}
