@@ -247,13 +247,6 @@ def __set_assign(update: Update):
     issue_id = __search_issue_id_in_keyboard(update)
     imessage = TgIssueMessage(update.callback_query.message.text_html)
 
-    # r, status_code = github.get_issue(imessage.issue_url)
-    # if status_code != 200:
-    #     return None, imessage.get_problem_text(r)
-
-    # assign_github_comment = r['body'] + ans['assign_change'].format(imessage.assigned, new_assigned,
-    #                                                                 update.callback_query.from_user.full_name)
-
     r = github.set_assignee(issue_id, assign_to_id)
 
     new_assigned = r['updateIssue']['issue']['assignees']['edges'][0]['node']['login']
@@ -267,16 +260,9 @@ def __close_issue(update: Update):
     imessage = TgIssueMessage(update.callback_query.message.text_html)
     issue_id = __search_issue_id_in_keyboard(update)
 
-    # r, status_code = github.get_issue(imessage.issue_url)
-    # if status_code != 200:
-    #     return None, imessage.get_problem_text(r)
-
-    # close_github_comment = r['body'] + ans['issue_close'].format(update.callback_query.from_user.full_name)
-
     r = github.close_issue(issue_id)
-    # if r.status_code != 200:
-    #     return None, imessage.get_problem_text(r)
 
+    assert type(r['closeIssue']['issue']['number']) is int
     text = imessage.get_close_message(update.callback_query.from_user.full_name)
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('🔄 Reopen', callback_data=f'reopen_{issue_id}')]])
 
@@ -288,17 +274,7 @@ def __reopen_issue(update: Update):
     imessage = TgIssueMessage(update.callback_query.message.text_html, from_reopen=True)
     issue_id = __search_issue_id_in_keyboard(update)
 
-    # r, status_code = github.get_issue(imessage.issue_url)
-    # if status_code != 200:
-    #     return None, imessage.get_problem_text(r)
-
-    # reopen_github_comment = r['body'] + ans['issue_reopen'].format(update.callback_query.from_user.full_name)
-
     r = github.reopen_issue(issue_id)
-
-    # r, status_code = github.reopen_issue(imessage.issue_url, reopen_github_comment)
-    # if status_code != 200:
-    #     return None, imessage.get_problem_text(r)
 
     if len(r['reopenIssue']['issue']['assignees']['edges']) != 0:
         imessage.set_assigned(r['reopenIssue']['issue']['assignees']['edges'][0]['node']['login'])
