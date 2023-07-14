@@ -7,9 +7,8 @@ mutation CreateIssue ($repositoryId: ID!, $title: String!, $body: String!) {
         }
     ) {
         issue {
-            number
-            url
             id
+            url
         }
     }
 }
@@ -22,9 +21,8 @@ mutation CloseIssue($issueId: ID!) {
         }
     ) {
         issue {
-            number
-            url
             id
+            url
         }
     }
 }
@@ -36,6 +34,9 @@ mutation ReopenIssue($issueId: ID!) {
         }
     ) {
         issue {
+            id
+            url
+            body
             assignees (first: 1){
                 edges {
                     node {
@@ -44,17 +45,35 @@ mutation ReopenIssue($issueId: ID!) {
                     }
                 }
             }
-            number
-            body
-            url
-            id
         }
     }
 }
 
 mutation SetIssueAssign($issueId: ID!, $assigneeIds: [ID!]){
-    updateIssue (input: {id: $issueId,
-        assigneeIds: $assigneeIds}){
+    updateIssue (
+        input: {
+            id: $issueId,
+            assigneeIds: $assigneeIds}){
+        issue {
+            id
+            url
+            assignees (first: 1){
+                edges {
+                    node {
+                        name
+                        login
+                    }
+                }
+            }
+        }
+    }
+}
+
+mutation TransferIssue($repositoryId: ID!, $issueId: ID!){
+    transferIssue (
+        input:{
+            repositoryId: $repositoryId,
+            issueId: $issueId}){
         issue {
             id
             url
