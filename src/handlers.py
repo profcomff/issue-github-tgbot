@@ -15,8 +15,9 @@ from gql.transport.exceptions import TransportQueryError, TransportAlreadyConnec
 from src.settings import Settings
 from src.issue_message import TgIssueMessage
 from src.github_api import Github
-from src.answers import ans
+from src.answers import Answers
 
+ans = Answers()
 settings = Settings()
 github = Github(settings)
 
@@ -71,7 +72,7 @@ def log_formatter(func):
 async def handler_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.message.chat_id,
                                    message_thread_id=update.message.message_thread_id,
-                                   text=ans['start'].format(settings.GH_ORGANIZATION_NICKNAME),
+                                   text=ans.start.format(settings.GH_ORGANIZATION_NICKNAME),
                                    disable_web_page_preview=True,
                                    parse_mode=ParseMode('HTML'))
 
@@ -81,7 +82,7 @@ async def handler_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handler_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.message.chat_id,
                                    message_thread_id=update.message.message_thread_id,
-                                   text=ans['help'].format(settings.BOT_NICKNAME),
+                                   text=ans.help.format(settings.BOT_NICKNAME),
                                    disable_web_page_preview=True,
                                    parse_mode=ParseMode('HTML'))
 
@@ -91,12 +92,12 @@ async def handler_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handler_md_guide(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.message.chat_id,
                                    message_thread_id=update.message.message_thread_id,
-                                   text=ans['markdown_guide_tg'],
+                                   text=ans.markdown_guide_tg,
                                    disable_web_page_preview=True,
                                    parse_mode=ParseMode('HTML'))
     await context.bot.send_message(chat_id=update.message.chat_id,
                                    message_thread_id=update.message.message_thread_id,
-                                   text=ans['markdown_guide_md'],
+                                   text=ans.markdown_guide_md,
                                    disable_web_page_preview=True,
                                    )
 
@@ -130,11 +131,11 @@ async def handler_button(update: Update, context: CallbackContext) -> None:
         case 'repos':
             keyboard = __keyboard_repos(update)
         case 'repo':
-            keyboard, text = __create_issue(update, context)
+            keyboard, text = __create_issue(update)
         case 'assign':
             keyboard, text = __set_assign(update)
         case _:
-            keyboard, text = None, 'Видимо бот обновился, эту issue нельзя настроить'
+            keyboard, text = None, 'Probably bot updated, issue can\'t be change.'
             logging.error('Old keyboard callback')
 
     await update.callback_query.edit_message_text(text=text,
@@ -157,7 +158,7 @@ async def handler_message(update: Update, context: CallbackContext) -> None:
         return
 
     if len(text) == 0:
-        text = 'После упоминания требуется ввести название issue. Больше в /help'
+        text = ans.no_title
         keyboard = None
     else:
         imessage = TgIssueMessage(text, from_user=True)
@@ -217,12 +218,12 @@ def __keyboard_members(update):
     return InlineKeyboardMarkup(buttons)
 
 
-def __create_issue(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def __create_issue(update: Update):
     repo_id = __get_action_value(update)
     imessage = TgIssueMessage(update.callback_query.message.text_html)
 
     link_to_msg = __get_link_to_telegram_message(update)
-    github_comment = imessage.comment + ans['issue_open'].format(update.callback_query.from_user.full_name, link_to_msg)
+    github_comment = imessage.comment + ans.issue_open.format(update.callback_query.from_user.full_name, link_to_msg)
 
     r = github.open_issue(repo_id, imessage.issue_title, github_comment)
 
