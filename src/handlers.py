@@ -8,7 +8,7 @@ import traceback
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackContext
-from telegram.constants import ParseMode
+from telegram.constants import ParseMode, ChatType
 
 from gql.transport.exceptions import TransportQueryError, TransportAlreadyConnected
 
@@ -154,6 +154,8 @@ async def handler_message(update: Update, context: CallbackContext) -> None:
         text = update.message.text_html.replace(settings.BOT_NICKNAME, '').strip()
     elif settings.BOT_NICKNAME.lower() in [caption.lower() for caption in list(captions.values())]:
         text = update.message.caption_html.replace(settings.BOT_NICKNAME, '').strip()
+    elif update.message.chat.type == ChatType.PRIVATE:
+        text = update.message.text_html
     else:
         return
 
