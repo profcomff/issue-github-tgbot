@@ -10,7 +10,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackContext
 from telegram.constants import ParseMode
 
-from gql.transport.exceptions import TransportQueryError
+from gql.transport.exceptions import TransportQueryError, TransportAlreadyConnected
 
 from src.settings import Settings
 from src.issue_message import TgIssueMessage
@@ -29,6 +29,12 @@ def error_handler(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await func(update, context)
+        except TransportAlreadyConnected as err:
+            await context.bot.send_message(chat_id=update.callback_query.message.chat_id,
+                                           message_thread_id=update.callback_query.message.message_thread_id,
+                                           text='The previous request is still being processed.\nPlease wait...')
+            logging.warning(f'TransportAlreadyConnected: {err.args}')
+
         except TransportQueryError as err:
             repo_name = 'Unknown'
             for kb in update.callback_query.message.reply_markup.inline_keyboard:
