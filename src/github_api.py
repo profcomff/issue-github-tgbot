@@ -64,17 +64,13 @@ class Github:
             r = self.client.execute(self.q_get_repos, operation_name='getReposBefore', variable_values=params)
         return r['repos']
 
-    def close_issue(self, issue_url, comment=''):
-        url = issue_url.replace('https://github.com', 'https://api.github.com/repos')
-        payload = {'state': 'closed', 'body': comment}
-        r = self.session.patch(url, headers=self.headers, json=payload)
-        return r
+    def close_issue(self, issueId, comment=''):
+        params = {'issueId': issueId}
+        return self.client.execute(self.q_issue_actions, operation_name='CloseIssue', variable_values=params)
 
-    def reopen_issue(self, issue_url, comment=''):
-        url = issue_url.replace('https://github.com', 'https://api.github.com/repos')
-        payload = {'state': 'open', 'body': comment}
-        r = self.session.patch(url, headers=self.headers, json=payload)
-        return r.json(), r.status_code
+    def reopen_issue(self, issueId, comment=''):
+        params = {'issueId': issueId}
+        return self.client.execute(self.q_issue_actions, operation_name='ReopenIssue', variable_values=params)
 
     def get_issue(self, issue_url):
         url = issue_url.replace('https://github.com', 'https://api.github.com/repos')

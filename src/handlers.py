@@ -96,10 +96,10 @@ async def handler_button(update: Update, context: CallbackContext) -> None:
         else:
             keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('Настроить', callback_data='setup')]])
 
-    elif callback_data == 'close':
+    elif callback_data.startswith('close_'):
         keyboard, text = __close_issue(update)
 
-    elif callback_data == 'reopen':
+    elif callback_data.startswith('reopen_'):
         keyboard, text = __reopen_issue(update)
 
     elif callback_data.startswith('repos_'):
@@ -204,10 +204,11 @@ async def __create_issue(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         r = github.open_issue(repo_id, imessage.issue_title, github_comment)
         imessage.set_issue_url(r['createIssue']['issue']['url'])
+        issue_id = r['createIssue']['issue']['id']
 
-        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('↩️', callback_data='quite'),
-                                          InlineKeyboardButton('👤', callback_data='assign_1'),
-                                          InlineKeyboardButton('❌', callback_data='close')]])
+        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('↩️', callback_data=f'quite_{issue_id}'),
+                                          InlineKeyboardButton('👤', callback_data=f'assign_1'),
+                                          InlineKeyboardButton('❌', callback_data=f'close_{issue_id}')]])
         logging.info(f'''{str_sender_info(update)} Succeeded open Issue: {r['createIssue']['issue']['url']}''')
         if settings.GH_SCRUM_STATE:
             threading.Thread(target=github.add_to_scrum, args=(r['createIssue']['issue']['id'], )).start()
@@ -251,19 +252,20 @@ def __set_assign(update: Update):
 
 def __close_issue(update: Update):
     imessage = TgIssueMessage(update.callback_query.message.text_html)
+    issueId = str(update.callback_query.data.split('_', 1)[1])
 
-    r, status_code = github.get_issue(imessage.issue_url)
-    if status_code != 200:
-        return None, imessage.get_problem_text(r)
+    # r, status_code = github.get_issue(imessage.issue_url)
+    # if status_code != 200:
+    #     return None, imessage.get_problem_text(r)
 
-    close_github_comment = r['body'] + ans['issue_close'].format(update.callback_query.from_user.full_name)
+    # close_github_comment = r['body'] + ans['issue_close'].format(update.callback_query.from_user.full_name)
 
-    r = github.close_issue(imessage.issue_url, close_github_comment)
-    if r.status_code != 200:
-        return None, imessage.get_problem_text(r)
+    r = github.close_issue(issueId)
+    # if r.status_code != 200:
+    #     return None, imessage.get_problem_text(r)
 
     text = imessage.get_close_message(update.callback_query.from_user.full_name)
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('🔄 Reopen', callback_data='reopen')]])
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('🔄 Reopen', callback_data=f'reopen_{issueId}')]])
 
     logging.info(f'{str_sender_info(update)} Succeeded closed Issue: {imessage.issue_url}')
     return keyboard, text
@@ -271,22 +273,26 @@ def __close_issue(update: Update):
 
 def __reopen_issue(update):
     imessage = TgIssueMessage(update.callback_query.message.text_html, from_reopen=True)
-    r, status_code = github.get_issue(imessage.issue_url)
-    if status_code != 200:
-        return None, imessage.get_problem_text(r)
+    issueId = str(update.callback_query.data.split('_', 1)[1])
 
-    reopen_github_comment = r['body'] + ans['issue_reopen'].format(update.callback_query.from_user.full_name)
+    # r, status_code = github.get_issue(imessage.issue_url)
+    # if status_code != 200:
+    #     return None, imessage.get_problem_text(r)
 
-    r, status_code = github.reopen_issue(imessage.issue_url, reopen_github_comment)
-    if status_code != 200:
-        return None, imessage.get_problem_text(r)
+    # reopen_github_comment = r['body'] + ans['issue_reopen'].format(update.callback_query.from_user.full_name)
 
-    if len(r['assignees']) != 0:
-        imessage.set_assigned(r['assignees'][0]['login'])
+    r = github.reopen_issue(issueId)
 
-    imessage.comment = r['body'].split('\n>')[0]
+    # r, status_code = github.reopen_issue(imessage.issue_url, reopen_github_comment)
+    # if status_code != 200:
+    #     return None, imessage.get_problem_text(r)
 
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('Настроить', callback_data='setup')]])
+    if len(r['reopenIssue']['issue']['assignees']['edges']) != 0:
+        imessage.set_assigned(r['reopenIssue']['issue']['assignees']['edges'][0]['node']['login'])
+
+    imessage.comment = r['reopenIssue']['issue']['body'].split('\n>')[0]
+
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('Настроить', callback_data=f'setup_{issueId}')]])
     logging.info(f'{str_sender_info(update)} Succeeded Reopen Issue: {imessage.issue_url}')
     return keyboard, imessage.get_text()
 
