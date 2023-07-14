@@ -54,6 +54,24 @@ mutation ReopenIssue($issueId: ID!) {
     }
 }
 
+mutation SetIssueAssign($issueId: ID!, $assigneeIds: [ID!]){
+    updateIssue (input: {id: $issueId,
+        assigneeIds: $assigneeIds}){
+        issue {
+            id
+            url
+            assignees (first: 1){
+                edges {
+                    node {
+                        name
+                        login
+                    }
+                }
+            }
+        }
+    }
+}
+
 #mutation CreateIssueScrum ($repositoryId: ID!, $title: String!, $body: String!, $projectIds: [ID!]) {
 #  createIssue(
 #    input: {

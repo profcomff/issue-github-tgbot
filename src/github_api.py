@@ -43,6 +43,8 @@ class Github:
     def __read_queries(self):
         with open('src/graphql/get_repos.graphql') as f:
             self.q_get_repos = gql(f.read())
+        with open('src/graphql/get_members.graphql') as f:
+            self.q_get_members = gql(f.read())
         with open('src/graphql/add_to_scrum.graphql') as f:
             self.q_add_to_scrum = gql(f.read())
         with open('src/graphql/issue_actions.graphql') as f:
@@ -72,21 +74,26 @@ class Github:
         params = {'issueId': issueId}
         return self.client.execute(self.q_issue_actions, operation_name='ReopenIssue', variable_values=params)
 
-    def get_issue(self, issue_url):
-        url = issue_url.replace('https://github.com', 'https://api.github.com/repos')
-        r = self.session.get(url, headers=self.headers)
-        return r.json(), r.status_code
+    # def get_issue(self, issue_url):
+    #     url = issue_url.replace('https://github.com', 'https://api.github.com/repos')
+    #     r = self.session.get(url, headers=self.headers)
+    #     return r.json(), r.status_code
 
-    def get_members(self, page):
-        data = {'sort': 'full_name', 'per_page': 9, 'page': page}
-        r = self.session.get(self.org_members_url, headers=self.headers, params=data)
-        return r.json()
+    def get_members(self, page_info):
+        params = {'org': self.organization_nickname}
+        if page_info == 'members_start':  # start page
+            r = self.client.execute(self.q_get_members, operation_name='GetMembersInit', variable_values=params)
+        elif page_info.startswith('members_after'):  # next page
+            params['cursor'] = page_info.split('_')[2]
+            r = self.client.execute(self.q_get_members, operation_name='GetMembersAfter', variable_values=params)
+        else:  # previous page
+            params['cursor'] = page_info.split('_')[2]
+            r = self.client.execute(self.q_get_members, operation_name='GetMembersBefore', variable_values=params)
+        return r['organization']['membersWithRole']
 
-    def set_assignee(self, issue_url, member_login, comment):
-        url = issue_url.replace('https://github.com', 'https://api.github.com/repos')
-        payload = {'assignees': [member_login], 'body': comment}
-        r = self.session.patch(url, headers=self.headers, json=payload)
-        return r
+    def set_assignee(self, issueId, assign_to_id):
+        params = {'issueId': issueId, 'assigneeIds': [assign_to_id]}
+        return self.client.execute(self.q_issue_actions, operation_name='SetIssueAssign', variable_values=params)
 
     def add_to_scrum(self, node_id):
         try:

@@ -11,6 +11,7 @@ query GetMembersInit($org: String!) {
             edges {
                 node {
                     login
+                    id
                 }
             }
         }
@@ -30,6 +31,7 @@ query GetMembersAfter($org: String!, $cursor: String!) {
             edges {
                 node {
                     login
+                    id
                 }
             }
         }
@@ -49,6 +51,7 @@ query GetMembersBefore($org: String!, $cursor: String!) {
             edges {
                 node {
                     login
+                    id
                 }
             }
         }
