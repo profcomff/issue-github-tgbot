@@ -295,8 +295,11 @@ def __reopen_issue(update: Update):
         imessage.set_assigned(r['reopenIssue']['issue']['assignees']['edges'][0]['node']['login'])
 
     imessage.comment = r['reopenIssue']['issue']['body'].split('\n>')[0]
-
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('Setup', callback_data=f'setup_{issue_id}')]])
+
+    if settings.GH_SCRUM_STATE:
+        threading.Thread(target=github.add_to_scrum, args=(issue_id,)).start()
+
     logging.info(f'Succeeded Reopen Issue: {imessage.issue_url}')
     return keyboard, imessage.get_text()
 
