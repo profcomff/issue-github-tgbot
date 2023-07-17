@@ -26,8 +26,17 @@ class TgIssueMessage:
 
     def get_gh_body(self, update):
         link_to_msg = self.__get_link_to_telegram_message(update)
-        body = self.comment + f'\n> Issue open by {update.callback_query.from_user.full_name} via {link_to_msg}'
-        return body.replace('</code>', '\n```').replace('<code>', '```\n')
+
+        text = self.comment
+        matches = re.findall(r'(<code>)([\s\S]*?)(<\/code>)', text)
+        for m in matches:
+            s = ''.join(m)
+            if '\n' in s:
+                text = text.replace(s, s.replace('<code>', '```\n').replace('</code>', '\n```'))
+            else:
+                text = text.replace(s, s.replace('<code>', '`').replace('</code>', '`'))
+
+        return text + f'\n> Issue open by {update.callback_query.from_user.full_name} via {link_to_msg}'
 
     @staticmethod
     def extract_href(raw_text):
