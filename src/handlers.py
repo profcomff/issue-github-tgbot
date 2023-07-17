@@ -240,9 +240,7 @@ def __create_issue(update: Update):
             imessage.set_assigned(r['transferIssue']['issue']['assignees']['edges'][0]['node']['login'])
         logging.info(f'''Succeeded transferred Issue: {r['transferIssue']['issue']['url']}''')
     else:
-        link_to_msg = __get_link_to_telegram_message(update)
-        github_comment = imessage.comment + ans.issue_open.format(update.callback_query.from_user.full_name, link_to_msg)
-        r = github.open_issue(repo_id, imessage.issue_title, github_comment)
+        r = github.open_issue(repo_id, imessage.issue_title, imessage.get_gh_body(update))
 
         imessage.set_issue_url(r['createIssue']['issue']['url'])
         issue_id = r['createIssue']['issue']['id']
@@ -302,18 +300,6 @@ def __reopen_issue(update: Update):
 
     logging.info(f'Succeeded Reopen Issue: {imessage.issue_url}')
     return keyboard, imessage.get_text()
-
-
-def __get_link_to_telegram_message(update: Update):
-    if update.callback_query.message.chat.type == "supergroup":
-        message_thread_id = update.callback_query.message.message_thread_id
-        message_thread_id = 1 if message_thread_id is None else message_thread_id  # If 'None' set '1'
-        chat_id = str(update.callback_query.message.chat_id)
-        message_id = update.callback_query.message.message_id
-        return f"""<a href="https://t.me/c/{chat_id[4:]}/{message_thread_id}/{message_id}">telegram message.</a>"""
-    else:
-        logging.warning(f"Chat {update.callback_query.message.chat_id} is not a supergroup, can't create a msg link.")
-        return 'telegram message.'
 
 
 def __get_action_value(update: Update):

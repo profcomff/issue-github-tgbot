@@ -24,6 +24,11 @@ class TgIssueMessage:
         else:
             self.__parse_bot_text(text_html)
 
+    def get_gh_body(self, update):
+        link_to_msg = self.__get_link_to_telegram_message(update)
+        body = self.comment + f'\n> Issue open by {update.callback_query.from_user.full_name} via {link_to_msg}'
+        return body.replace('</code>', '\n```').replace('<code>', '```\n')
+
     @staticmethod
     def extract_href(raw_text):
         match = re.search(r'href=[\'"]?([^\'" >]+)', raw_text)
@@ -67,16 +72,8 @@ class TgIssueMessage:
         if len(st) > 3:
             self.comment = '\n'.join(st[3:])
 
-    def is_created(self):
-        return bool(self.issue_url)
-
     def get_close_message(self, closer_name):
         return f'Issue <a href="{self.issue_url}">{self.issue_title}</a> closed by {closer_name}'
-
-    def get_problem_text(self, r):
-        text = f'Problem with {self.issue_url}: {r["message"]}'
-        logging.warning(text)
-        return text
 
     def set_issue_url(self, issue_url):
         self.issue_url = issue_url
@@ -108,3 +105,16 @@ class TgIssueMessage:
             text += f'\n{self.comment}'
 
         return text
+
+    @staticmethod
+    def __get_link_to_telegram_message(update):
+        if update.callback_query.message.chat.type == "supergroup":
+            message_thread_id = update.callback_query.message.message_thread_id
+            message_thread_id = 1 if message_thread_id is None else message_thread_id  # If 'None' set '1'
+            chat_id = str(update.callback_query.message.chat_id)
+            message_id = update.callback_query.message.message_id
+            return f"""<a href="https://t.me/c/{chat_id[4:]}/{message_thread_id}/{message_id}">telegram message.</a>"""
+        else:
+            logging.warning(f"Chat {update.callback_query.message.chat_id} is not a supergroup,"
+                            f"can't create a msg link.")
+            return 'telegram message.'
