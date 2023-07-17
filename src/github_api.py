@@ -55,11 +55,11 @@ class Github:
             r = self.client.execute(self.q_get_repos, operation_name='getReposBefore', variable_values=params)
         return r['repos']
 
-    def close_issue(self, issue_id, comment=''):
+    def close_issue(self, issue_id):
         params = {'issueId': issue_id}
         return self.client.execute(self.q_issue_actions, operation_name='CloseIssue', variable_values=params)
 
-    def reopen_issue(self, issue_id, comment=''):
+    def reopen_issue(self, issue_id):
         params = {'issueId': issue_id}
         return self.client.execute(self.q_issue_actions, operation_name='ReopenIssue', variable_values=params)
 
