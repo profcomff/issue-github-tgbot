@@ -146,17 +146,18 @@ async def handler_button(update: Update, context: CallbackContext) -> None:
 @error_handler
 @log_formatter
 async def handler_message(update: Update, context: CallbackContext) -> None:
-    text = update.message.text.replace(settings.BOT_NICKNAME, '').strip()
+    text_html = update.message.text_html.replace(settings.BOT_NICKNAME, '').strip()
 
-    if len(text) == 0:
-        text = ans.no_title
-        keyboard = None
-    else:
-        imessage = TgIssueMessage(text, from_user=True)
-        text = imessage.get_text()
-        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('⚠️ Select repo to create',
-                                                               callback_data='repos_start')]])
+    if len(text_html) == 0:
+        await context.bot.send_message(chat_id=update.message.chat_id,
+                                       message_thread_id=update.message.message_thread_id,
+                                       text=ans.no_title)
+        return
 
+    imessage = TgIssueMessage()
+    imessage.from_user(text_html)
+    text = imessage.get_text()
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('⚠️ Select repo to create', callback_data='repos_start')]])
     await context.bot.send_message(chat_id=update.message.chat_id,
                                    message_thread_id=update.message.message_thread_id,
                                    text=text,
@@ -215,7 +216,7 @@ def __keyboard_members(update):
 
 def __create_issue(update: Update):
     repo_id = __get_action_value(update)
-    imessage = TgIssueMessage(update.callback_query.message.text_html)
+    imessage = TgIssueMessage(bot_html=update.callback_query.message.text_html)
 
     issue_id = __search_issue_id_in_keyboard(update)
     if issue_id is not None:
@@ -246,7 +247,7 @@ def __create_issue(update: Update):
 def __set_assign(update: Update):
     assign_to_id = __get_action_value(update)
     issue_id = __search_issue_id_in_keyboard(update)
-    imessage = TgIssueMessage(update.callback_query.message.text_html)
+    imessage = TgIssueMessage(bot_html=update.callback_query.message.text_html)
 
     r = github.set_assignee(issue_id, assign_to_id)
 
@@ -261,7 +262,7 @@ def __set_assign(update: Update):
 
 
 def __close_issue(update: Update):
-    imessage = TgIssueMessage(update.callback_query.message.text_html)
+    imessage = TgIssueMessage(bot_html=update.callback_query.message.text_html)
     issue_id = __search_issue_id_in_keyboard(update)
 
     r = github.close_issue(issue_id)
@@ -275,21 +276,27 @@ def __close_issue(update: Update):
 
 
 def __reopen_issue(update: Update):
-    imessage = TgIssueMessage(update.callback_query.message.text_html, from_reopen=True)
+
     issue_id = __search_issue_id_in_keyboard(update)
 
     r = github.reopen_issue(issue_id)
 
+    issue_url = r['reopenIssue']['issue']['url']
+    title = r['reopenIssue']['issue']['title']
     if len(r['reopenIssue']['issue']['assignees']['edges']) != 0:
-        imessage.set_assigned(r['reopenIssue']['issue']['assignees']['edges'][0]['node']['login'])
+        login = r['reopenIssue']['issue']['assignees']['edges'][0]['node']['login']
+    else:
+        login = None
+    body = r['reopenIssue']['issue']['body'].split('\n> Issue open by')[0]
 
-    imessage.comment = r['reopenIssue']['issue']['body'].split('\n>')[0]
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('Setup', callback_data=f'setup_{issue_id}')]])
+    imessage = TgIssueMessage()
+    imessage.from_reopen(issue_url, title, body, login)
 
     if settings.GH_SCRUM_STATE:
         threading.Thread(target=github.add_to_scrum, args=(issue_id,)).start()
 
     logging.info(f'Succeeded Reopen Issue: {imessage.issue_url}')
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('Setup', callback_data=f'setup_{issue_id}')]])
     return keyboard, imessage.get_text()
 
 
