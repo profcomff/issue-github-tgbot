@@ -1,8 +1,8 @@
 # Marakulin Andrey https://github.com/Annndruha
 # 2023
 # This class used for parsing telegram message and reformat for GitHub markdown
-import re
 import logging
+import re
 
 from telegram.constants import ChatType
 

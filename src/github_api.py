@@ -2,9 +2,10 @@
 # 2023
 import logging
 
-from gql import gql, Client
+from gql import Client, gql
 from gql.transport.requests import RequestsHTTPTransport
 from gql.transport.requests import log as requests_logger
+
 requests_logger.setLevel(logging.WARNING)
 logging.getLogger("httpx").propagate = False
 

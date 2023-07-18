@@ -3,11 +3,12 @@
 
 import logging
 
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler
-from telegram.ext import filters
+from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
+                          CommandHandler, MessageHandler, filters)
 
+from src.handlers import (handler_button, handler_help, handler_md_guide,
+                          handler_message, handler_start)
 from src.settings import Settings
-from src.handlers import handler_start, handler_help, handler_md_guide, handler_button, handler_message
 
 tg_log_handler = logging.FileHandler("issue_tgbot_telegram_updater.log")
 tg_log_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))

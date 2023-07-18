@@ -1,21 +1,21 @@
 # Marakulin Andrey https://github.com/Annndruha
 # 2023
 
-import logging
 import functools
+import logging
 import threading
 import traceback
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, CallbackContext
+from gql.transport.exceptions import (TransportAlreadyConnected,
+                                      TransportError, TransportQueryError)
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
+from telegram.ext import CallbackContext, ContextTypes
 
-from gql.transport.exceptions import TransportQueryError, TransportAlreadyConnected, TransportError
-
-from src.settings import Settings
-from src.issue_message import TgIssueMessage
-from src.github_api import Github
 from src.answers import Answers
+from src.github_api import Github
+from src.issue_message import TgIssueMessage
+from src.settings import Settings
 
 ans = Answers()
 settings = Settings()
