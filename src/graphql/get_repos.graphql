@@ -1,4 +1,4 @@
-query getReposInit($gh_query: String!) {
+query GetReposInit($gh_query: String!) {
   repos: search(query: $gh_query, type: REPOSITORY, first: 9) {
     repositoryCount
     pageInfo {
@@ -19,7 +19,7 @@ query getReposInit($gh_query: String!) {
   }
 }
 
-query getReposAfter($gh_query: String!, $cursor: String!) {
+query GetReposAfter($gh_query: String!, $cursor: String!) {
   repos: search(query: $gh_query, type: REPOSITORY, first: 9, after: $cursor) {
     repositoryCount
     pageInfo {
@@ -40,7 +40,7 @@ query getReposAfter($gh_query: String!, $cursor: String!) {
   }
 }
 
-query getReposBefore($gh_query: String!, $cursor: String!) {
+query GetReposBefore($gh_query: String!, $cursor: String!) {
   repos: search(query: $gh_query, type: REPOSITORY, last: 9, before: $cursor) {
     repositoryCount
     pageInfo {

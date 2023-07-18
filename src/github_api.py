@@ -46,13 +46,13 @@ class Github:
         params = {'gh_query': f'org:{self.settings.GH_ORGANIZATION_NICKNAME} archived:false fork:true is:public '
                               f'sort:updated'}
         if page_info == 'repos_start':  # start page
-            r = self.client.execute(self.q_get_repos, operation_name='getReposInit', variable_values=params)
+            r = self.client.execute(self.q_get_repos, operation_name='GetReposInit', variable_values=params)
         elif page_info.startswith('repos_after'):  # next page
             params['cursor'] = page_info.split('_')[2]
-            r = self.client.execute(self.q_get_repos, operation_name='getReposAfter', variable_values=params)
+            r = self.client.execute(self.q_get_repos, operation_name='GetReposAfter', variable_values=params)
         else:  # previous page
             params['cursor'] = page_info.split('_')[2]
-            r = self.client.execute(self.q_get_repos, operation_name='getReposBefore', variable_values=params)
+            r = self.client.execute(self.q_get_repos, operation_name='GetReposBefore', variable_values=params)
         return r['repos']
 
     def close_issue(self, issue_id):
@@ -83,7 +83,7 @@ class Github:
         try:
             params = {'projectId': self.settings.GH_SCRUM_ID,
                       'contentId': node_id}
-            r = self.client.execute(self.q_add_to_scrum, operation_name='addToScrum', variable_values=params)
+            r = self.client.execute(self.q_add_to_scrum, operation_name='AddToScrum', variable_values=params)
     
             item_id = r['addProjectV2ItemById']['item']['id']
             logging.info(f'Node {node_id} successfully added to scrum with contentId= {item_id}')
@@ -92,7 +92,7 @@ class Github:
                       'itemId': item_id,
                       'fieldId': self.settings.GH_SCRUM_FIELD_ID,
                       'value': self.settings.GH_SCRUM_FIELD_DEFAULT_STATE}  # backlog column
-            r = self.client.execute(self.q_add_to_scrum, operation_name='setScrumStatus', variable_values=params)
+            r = self.client.execute(self.q_add_to_scrum, operation_name='SetScrumStatus', variable_values=params)
             if 'errors' in r:
                 logging.warning(f'''itemId={item_id} not set status. Reason: {r['errors']}''')
         except Exception as err:
