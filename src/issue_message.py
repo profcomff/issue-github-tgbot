@@ -4,6 +4,8 @@
 import re
 import logging
 
+from telegram.constants import ChatType
+
 
 class TgIssueMessage:
     def __init__(self, text_html, from_user=False, from_reopen=False):
@@ -45,15 +47,18 @@ class TgIssueMessage:
 
     @staticmethod
     def __get_link_to_telegram_message(update):
-        if update.callback_query.message.chat.type == "supergroup":
+        if update.callback_query.message.chat.type == ChatType.SUPERGROUP:
             message_thread_id = update.callback_query.message.message_thread_id
             message_thread_id = 1 if message_thread_id is None else message_thread_id  # If 'None' set '1'
             chat_id = str(update.callback_query.message.chat_id)
             message_id = update.callback_query.message.message_id
             return f"""<a href="https://t.me/c/{chat_id[4:]}/{message_thread_id}/{message_id}">telegram message.</a>"""
+        elif update.callback_query.message.chat.type == ChatType.GROUP:
+            return 'group-chat message.'
+        elif update.callback_query.message.chat.type == ChatType.PRIVATE:
+            return 'private telegram message.'
         else:
-            logging.warning(f"Chat {update.callback_query.message.chat_id} is not a supergroup,"
-                            f"can't create a msg link.")
+            logging.warning(f"Chat {update.callback_query.message.chat_id} not a supergroup, can't create a msg link.")
             return 'telegram message.'
 
     def get_gh_body(self, update):
