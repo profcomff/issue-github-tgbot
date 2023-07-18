@@ -1,62 +1,81 @@
-query GetReposInit($gh_query: String!) {
-  repos: search(query: $gh_query, type: REPOSITORY, first: 9) {
-    repositoryCount
-    pageInfo {
-      hasNextPage
-      endCursor
-      hasPreviousPage
-      startCursor
-    }
-    edges {
-      node {
-        ... on Repository {
-          name
-          url
-          id
+query GetReposInit($org: String!){
+    organization(login: $org){
+        repositories (
+            first: 9,
+            orderBy: {field: PUSHED_AT, direction: DESC}
+        ){
+            totalCount
+            pageInfo {
+                hasNextPage
+                endCursor
+                hasPreviousPage
+                startCursor
+            }
+            edges {
+                node {
+                    ... on Repository {
+                        name
+                        url
+                        id
+                    }
+                }
+            }
         }
-      }
     }
-  }
 }
 
-query GetReposAfter($gh_query: String!, $cursor: String!) {
-  repos: search(query: $gh_query, type: REPOSITORY, first: 9, after: $cursor) {
-    repositoryCount
-    pageInfo {
-      hasNextPage
-      endCursor
-      hasPreviousPage
-      startCursor
-    }
-    edges {
-      node {
-        ... on Repository {
-          name
-          url
-          id
+query GetReposAfter($org: String!, $cursor: String!){
+    organization(login: $org){
+        repositories (
+            first: 9,
+            after: $cursor
+            orderBy: {field: PUSHED_AT, direction: DESC}
+        ){
+            totalCount
+            pageInfo {
+                hasNextPage
+                endCursor
+                hasPreviousPage
+                startCursor
+            }
+            edges {
+                node {
+                    ... on Repository {
+                        name
+                        url
+                        id
+                    }
+                }
+            }
         }
-      }
     }
-  }
 }
 
-query GetReposBefore($gh_query: String!, $cursor: String!) {
-  repos: search(query: $gh_query, type: REPOSITORY, last: 9, before: $cursor) {
-    repositoryCount
-    pageInfo {
-      hasNextPage
-      endCursor
-      hasPreviousPage
-      startCursor
-    }
-    edges {
-      node {
-        ... on Repository {
-          name
-          url
-          id
+query GetReposBefore($org: String!, $cursor: String!){
+    organization(login: $org){
+        repositories (
+            last: 9,
+            before: $cursor
+            orderBy: {field: PUSHED_AT, direction: DESC}
+        ){
+            totalCount
+            pageInfo {
+                hasNextPage
+                endCursor
+                hasPreviousPage
+                startCursor
+            }
+            edges {
+                node {
+                    ... on Repository {
+                        name
+                        url
+                        id
+                    }
+                }
+            }
         }
-      }
     }
-  }
 }
+
+

@@ -32,14 +32,17 @@ def error_handler(func):
                                                     text='The previous request not done yet.\nPlease wait...')
         except TransportQueryError as err:
             logging.warning(f'Failed to open Issue: {err}')
-            match err.errors[0]['type']:
-                case 'NOT_FOUND':
-                    text = 'Issue not found'
-                    await update.callback_query.edit_message_text(text=text)
-                case 'FORBIDDEN':
-                    text = 'Issue disabled for this repo'
-                case _:
-                    text = err.errors[0]['message']
+            if 'type' in err.errors[0]:
+                match err.errors[0]['type']:
+                    case 'NOT_FOUND':
+                        text = 'Issue not found'
+                        await update.callback_query.edit_message_text(text=text)
+                    case 'FORBIDDEN':
+                        text = 'Issue disabled for this repo'
+                    case _:
+                        text = err.errors[0]['message']
+            else:
+                text = err.errors[0]['message']
             await context.bot.answer_callback_query(callback_query_id=update.callback_query.id, text=text)
         except TransportError as err:
             logging.warning(f'TransportError: {err.args}')
@@ -111,13 +114,13 @@ async def handler_button(update: Update, context: CallbackContext) -> None:
         case 'setup':
             issue_id = __search_issue_id_in_keyboard(update)
             keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('↩️', callback_data=f'quite_{issue_id}'),
-                                              InlineKeyboardButton('🗄 ', callback_data=f'repos_start'),
+                                              InlineKeyboardButton('🗄 ', callback_data=f'rps_start'),
                                               InlineKeyboardButton('👤', callback_data=f'members_start'),
                                               InlineKeyboardButton('❌', callback_data=f'close_{issue_id}')]])
         case 'quite':
             if update.callback_query.data == 'quite_start':
                 keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('⚠️ Select repo to create',
-                                                                       callback_data='repos_start')]])
+                                                                       callback_data='rps_start')]])
             else:
                 issue_id = __search_issue_id_in_keyboard(update)
                 keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('Setup', callback_data=f'setup_{issue_id}')]])
@@ -127,7 +130,7 @@ async def handler_button(update: Update, context: CallbackContext) -> None:
             keyboard, text = __reopen_issue(update)
         case 'members':
             keyboard = __keyboard_members(update)
-        case 'repos':
+        case 'rps':
             keyboard = __keyboard_repos(update)
         case 'repo':
             keyboard, text = __create_issue(update)
@@ -157,7 +160,7 @@ async def handler_message(update: Update, context: CallbackContext) -> None:
     imessage = TgIssueMessage()
     imessage.from_user(text_html)
     text = imessage.get_text()
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('⚠️ Select repo to create', callback_data='repos_start')]])
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('⚠️ Select repo to create', callback_data='rps_start')]])
     await context.bot.send_message(chat_id=update.message.chat_id,
                                    message_thread_id=update.message.message_thread_id,
                                    text=text,
@@ -176,7 +179,8 @@ def __keyboard_repos(update):
 
     buttons.append([])
     if repos_info['pageInfo']['hasPreviousPage']:
-        cb_data = f'''repos_before_{repos_info['pageInfo']['startCursor']}'''
+        cb_data = f'''rps_be_{repos_info['pageInfo']['startCursor']}'''
+        print(repos_info['pageInfo']['startCursor'])
         buttons[-1].append(InlineKeyboardButton('⬅️', callback_data=cb_data))
 
     if issue_id is not None:
@@ -185,7 +189,8 @@ def __keyboard_repos(update):
         buttons[-1].append(InlineKeyboardButton('↩️ Back', callback_data=f'quite_start'))
 
     if repos_info['pageInfo']['hasNextPage']:
-        cb_data = f'''repos_after_{repos_info['pageInfo']['endCursor']}'''
+        cb_data = f'''rps_af_{repos_info['pageInfo']['endCursor']}'''
+        print(repos_info['pageInfo']['endCursor'])
         buttons[-1].append(InlineKeyboardButton('➡️', callback_data=cb_data))
 
     return InlineKeyboardMarkup(buttons)
@@ -238,7 +243,7 @@ def __create_issue(update: Update):
             threading.Thread(target=github.add_to_scrum, args=(r['createIssue']['issue']['id'], )).start()
 
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('↩️', callback_data=f'quite_{issue_id}'),
-                                      InlineKeyboardButton('🗄 ', callback_data=f'repos_start'),
+                                      InlineKeyboardButton('🗄 ', callback_data=f'rps_start'),
                                       InlineKeyboardButton('👤', callback_data=f'members_start'),
                                       InlineKeyboardButton('❌', callback_data=f'close_{issue_id}')]])
     return keyboard, imessage.get_text()
@@ -255,7 +260,7 @@ def __set_assign(update: Update):
     imessage.set_assigned(new_assigned)
     logging.info(f'Set assign to {new_assigned}')
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('↩️', callback_data=f'quite_{issue_id}'),
-                                      InlineKeyboardButton('🗄 ', callback_data=f'repos_start'),
+                                      InlineKeyboardButton('🗄 ', callback_data=f'rps_start'),
                                       InlineKeyboardButton('👤', callback_data=f'members_start'),
                                       InlineKeyboardButton('❌', callback_data=f'close_{issue_id}')]])
     return keyboard, imessage.get_text()

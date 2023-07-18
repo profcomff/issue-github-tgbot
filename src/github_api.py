@@ -43,17 +43,16 @@ class Github:
         return self.client.execute(self.q_issue_actions, operation_name='TransferIssue', variable_values=params)
 
     def get_repos(self, page_info):
-        params = {'gh_query': f'org:{self.settings.GH_ORGANIZATION_NICKNAME} archived:false fork:true is:public '
-                              f'sort:updated'}
-        if page_info == 'repos_start':  # start page
+        params = {'org': self.settings.GH_ORGANIZATION_NICKNAME}
+        if page_info == 'rps_start':  # start page
             r = self.client.execute(self.q_get_repos, operation_name='GetReposInit', variable_values=params)
-        elif page_info.startswith('repos_after'):  # next page
-            params['cursor'] = page_info.split('_')[2]
+        elif page_info.startswith('rps_af'):  # next page
+            params['cursor'] = page_info.split('_', 2)[2]
             r = self.client.execute(self.q_get_repos, operation_name='GetReposAfter', variable_values=params)
         else:  # previous page
-            params['cursor'] = page_info.split('_')[2]
+            params['cursor'] = page_info.split('_', 2)[2]
             r = self.client.execute(self.q_get_repos, operation_name='GetReposBefore', variable_values=params)
-        return r['repos']
+        return r['organization']['repositories']
 
     def close_issue(self, issue_id):
         params = {'issueId': issue_id}
