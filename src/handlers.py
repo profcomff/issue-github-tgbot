@@ -10,7 +10,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackContext
 from telegram.constants import ParseMode, ChatType
 
-from gql.transport.exceptions import TransportQueryError, TransportAlreadyConnected
+from gql.transport.exceptions import TransportQueryError, TransportAlreadyConnected, TransportError
 
 from src.settings import Settings
 from src.issue_message import TgIssueMessage
@@ -31,21 +31,22 @@ def error_handler(func):
         try:
             await func(update, context)
         except TransportAlreadyConnected as err:
-            await context.bot.send_message(chat_id=update.callback_query.message.chat_id,
-                                           message_thread_id=update.callback_query.message.message_thread_id,
-                                           text='The previous request is still being processed.\nPlease wait...')
             logging.warning(f'TransportAlreadyConnected: {err.args}')
-
+            await context.bot.answer_callback_query(callback_query_id=update.callback_query.id,
+                                                    text='The previous request not done yet.\nPlease wait...')
         except TransportQueryError as err:
-            repo_name = 'Unknown'
-            for kb in update.callback_query.message.reply_markup.inline_keyboard:
-                if kb[0].callback_data == update.callback_query.data:
-                    repo_name = kb[0].text
-
-            await context.bot.send_message(chat_id=update.callback_query.message.chat_id,
-                                           message_thread_id=update.callback_query.message.message_thread_id,
-                                           text=f'''{repo_name}: {err.errors[0]['message']}''')
-            logging.error(f'Failed to open Issue: {err.args}')
+            logging.warning(f'Failed to open Issue: {err}')
+            match err.errors[0]['type']:
+                case 'NOT_FOUND':
+                    text = 'Issue not found'
+                case 'FORBIDDEN':
+                    text = 'Issue disabled for this repo'
+                case _:
+                    text = err.errors[0]['message']
+            await context.bot.answer_callback_query(callback_query_id=update.callback_query.id, text=text)
+        except TransportError as err:
+            logging.warning(f'TransportError: {err.args}')
+            await context.bot.answer_callback_query(callback_query_id=update.callback_query.id, text=err.args)
         except Exception as err:
             logging.error(err)
             traceback.print_tb(err.__traceback__)
