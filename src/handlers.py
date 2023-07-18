@@ -8,7 +8,7 @@ import traceback
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackContext
-from telegram.constants import ParseMode, ChatType
+from telegram.constants import ParseMode
 
 from gql.transport.exceptions import TransportQueryError, TransportAlreadyConnected, TransportError
 
@@ -20,10 +20,6 @@ from src.answers import Answers
 ans = Answers()
 settings = Settings()
 github = Github(settings)
-
-
-async def native_error_handler(update, context):
-    pass
 
 
 def error_handler(func):
@@ -150,17 +146,7 @@ async def handler_button(update: Update, context: CallbackContext) -> None:
 @error_handler
 @log_formatter
 async def handler_message(update: Update, context: CallbackContext) -> None:
-    mentions = update.effective_message.parse_entities(["mention"])
-    captions = update.effective_message.parse_caption_entities(["mention"])
-
-    if settings.BOT_NICKNAME.lower() in [mention.lower() for mention in list(mentions.values())]:
-        text = update.message.text_html.replace(settings.BOT_NICKNAME, '').strip()
-    elif settings.BOT_NICKNAME.lower() in [caption.lower() for caption in list(captions.values())]:
-        text = update.message.caption_html.replace(settings.BOT_NICKNAME, '').strip()
-    elif update.message.chat.type == ChatType.PRIVATE:
-        text = update.message.text_html
-    else:
-        return
+    text = update.message.text.replace(settings.BOT_NICKNAME, '').strip()
 
     if len(text) == 0:
         text = ans.no_title

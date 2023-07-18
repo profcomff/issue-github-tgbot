@@ -56,7 +56,7 @@ class TgIssueMessage:
         elif update.callback_query.message.chat.type == ChatType.GROUP:
             return 'group-chat message.'
         elif update.callback_query.message.chat.type == ChatType.PRIVATE:
-            return 'private telegram message.'
+            return 'personal telegram message.'
         else:
             logging.warning(f"Chat {update.callback_query.message.chat_id} not a supergroup, can't create a msg link.")
             return 'telegram message.'
