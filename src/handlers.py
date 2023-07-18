@@ -116,7 +116,7 @@ async def handler_button(update: Update, context: CallbackContext) -> None:
             issue_id = __search_issue_id_in_keyboard(update)
             keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('↩️', callback_data=f'quite_{issue_id}'),
                                               InlineKeyboardButton('🗄 ', callback_data=f'repos_start'),
-                                              InlineKeyboardButton('👤', callback_data='members_start'),
+                                              InlineKeyboardButton('👤', callback_data=f'members_start'),
                                               InlineKeyboardButton('❌', callback_data=f'close_{issue_id}')]])
         case 'quite':
             if update.callback_query.data == 'quite_start':
@@ -267,8 +267,11 @@ def __set_assign(update: Update):
     new_assigned = r['updateIssue']['issue']['assignees']['edges'][0]['node']['login']
     imessage.set_assigned(new_assigned)
     logging.info(f'Set assign to {new_assigned}')
-    return InlineKeyboardMarkup([[InlineKeyboardButton('Setup',
-                                                       callback_data=f'setup_{issue_id}')]]), imessage.get_text()
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('↩️', callback_data=f'quite_{issue_id}'),
+                                      InlineKeyboardButton('🗄 ', callback_data=f'repos_start'),
+                                      InlineKeyboardButton('👤', callback_data=f'members_start'),
+                                      InlineKeyboardButton('❌', callback_data=f'close_{issue_id}')]])
+    return keyboard, imessage.get_text()
 
 
 def __close_issue(update: Update):
