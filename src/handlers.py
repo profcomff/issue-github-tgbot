@@ -39,6 +39,7 @@ def error_handler(func):
             match err.errors[0]['type']:
                 case 'NOT_FOUND':
                     text = 'Issue not found'
+                    await update.callback_query.edit_message_text(text=text)
                 case 'FORBIDDEN':
                     text = 'Issue disabled for this repo'
                 case _:
