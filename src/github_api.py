@@ -67,10 +67,10 @@ class Github:
         if page_info == 'members_start':  # start page
             r = self.client.execute(self.q_get_members, operation_name='GetMembersInit', variable_values=params)
         elif page_info.startswith('members_after'):  # next page
-            params['cursor'] = page_info.split('_')[2]
+            params['cursor'] = page_info.split('_', 2)[2]
             r = self.client.execute(self.q_get_members, operation_name='GetMembersAfter', variable_values=params)
         else:  # previous page
-            params['cursor'] = page_info.split('_')[2]
+            params['cursor'] = page_info.split('_', 2)[2]
             r = self.client.execute(self.q_get_members, operation_name='GetMembersBefore', variable_values=params)
         return r['organization']['membersWithRole']
 
