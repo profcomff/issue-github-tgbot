@@ -3,11 +3,10 @@
 
 import logging
 
-from telegram.ext import (ApplicationBuilder, CallbackQueryHandler,
-                          CommandHandler, MessageHandler, filters)
+from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, MessageHandler, filters
+from gql.transport.requests import log as requests_logger
 
-from src.handlers import (handler_button, handler_help, handler_md_guide,
-                          handler_message, handler_start)
+from src.handlers import handler_button, handler_help, handler_md_guide, handler_message, handler_start
 from src.settings import Settings
 
 tg_log_handler = logging.FileHandler("issue_tgbot_telegram_updater.log")
@@ -15,6 +14,9 @@ tg_log_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(leveln
 tg_logger = logging.getLogger('telegram.ext._updater')
 tg_logger.propagate = False
 tg_logger.addHandler(tg_log_handler)
+
+requests_logger.setLevel(logging.WARNING)
+logging.getLogger("httpx").propagate = False
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

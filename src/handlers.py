@@ -55,6 +55,9 @@ def error_handler(func):
 
 
 def log_formatter(func):
+    """
+    Every time for bot event print an actor and handler name. Optional print a message id and callback_data
+    """
     @functools.wraps(func)
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if update.callback_query is None:
@@ -134,7 +137,7 @@ async def handler_message(update: Update, context: CallbackContext) -> None:
 async def handler_button(update: Update, context: CallbackContext) -> None:
     """
     This is keyboard callback browser.
-    Typically, callback_data stored in buttons like:
+    callback_data stored in buttons like this:
 
     'action_subaction_IDSTRING' - For members and repos keyboard pages
     'action_IDSTRING' - For all other cases
@@ -150,9 +153,9 @@ async def handler_button(update: Update, context: CallbackContext) -> None:
             issue_id = __search_issue_id_in_keyboard(update)
             keyboard = __get_keyboard_setup(issue_id)
         case 'members':
-            keyboard = __keyboard_members(update)
+            keyboard = __get_keyboard_members(update)
         case 'rps':
-            keyboard = __keyboard_repos(update)
+            keyboard = __get_keyboard_repos(update)
         case 'repo':
             keyboard, text = __create_issue(update)
         case 'assign':
@@ -162,24 +165,13 @@ async def handler_button(update: Update, context: CallbackContext) -> None:
         case 'reopen':
             keyboard, text = __reopen_issue(update)
         case _:
-            keyboard, text = None, 'Probably bot updated, issue can\'t be change.'
+            keyboard, text = None, 'Probably bot updated, issue can\'t be changed.'
             logging.error('Old keyboard callback')
 
     await update.callback_query.edit_message_text(text=text,
                                                   reply_markup=keyboard,
                                                   disable_web_page_preview=True,
                                                   parse_mode=ParseMode('HTML'))
-
-
-def __get_keyboard_setup(issue_id) -> InlineKeyboardMarkup:
-    """
-    Base keyboard for setup existed issue.
-    return keyboard with 4 buttons: hide setup, change repo, change assign and close issue
-    """
-    return InlineKeyboardMarkup([[InlineKeyboardButton('↩️', callback_data=f'quite_{issue_id}'),
-                                  InlineKeyboardButton('🗄 ', callback_data=f'rps_start'),
-                                  InlineKeyboardButton('👤', callback_data=f'members_start'),
-                                  InlineKeyboardButton('❌', callback_data=f'close_{issue_id}')]])
 
 
 def __get_keyboard_begin(update: Update) -> InlineKeyboardMarkup:
@@ -189,14 +181,31 @@ def __get_keyboard_begin(update: Update) -> InlineKeyboardMarkup:
     or for hide setup keyboard
     """
     if update.callback_query is None or update.callback_query.data == 'quite_start':
-        return InlineKeyboardMarkup([[InlineKeyboardButton('⚠️ Select repo to create',
-                                                           callback_data='rps_start')]])
+        return InlineKeyboardMarkup([[InlineKeyboardButton('⚠️ Select repo to create', callback_data='rps_start')]])
     else:
         issue_id = __search_issue_id_in_keyboard(update)
         return InlineKeyboardMarkup([[InlineKeyboardButton('Setup', callback_data=f'setup_{issue_id}')]])
 
 
-def __keyboard_repos(update) -> InlineKeyboardMarkup:
+def __get_keyboard_setup(issue_id: str) -> InlineKeyboardMarkup:
+    """
+    Setup keyboard for setup existed issue.
+    return keyboard with 4 buttons: hide setup, change repo, change assign and close issue
+    """
+    return InlineKeyboardMarkup([[InlineKeyboardButton('↩️', callback_data=f'quite_{issue_id}'),
+                                  InlineKeyboardButton('🗄 ', callback_data=f'rps_start'),
+                                  InlineKeyboardButton('👤', callback_data=f'members_start'),
+                                  InlineKeyboardButton('❌', callback_data=f'close_{issue_id}')]])
+
+
+def __get_keyboard_reopen(issue_id: str) -> InlineKeyboardMarkup:
+    """
+    Return a keyboard with reopen button
+    """
+    return InlineKeyboardMarkup([[InlineKeyboardButton('🔄 Reopen', callback_data=f'reopen_{issue_id}')]])
+
+
+def __get_keyboard_repos(update: Update) -> InlineKeyboardMarkup:
     """
     Get organization repositories and create a keyboard page
     with repositories and control buttons
@@ -224,7 +233,7 @@ def __keyboard_repos(update) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(buttons)
 
 
-def __keyboard_members(update: Update) -> InlineKeyboardMarkup:
+def __get_keyboard_members(update: Update) -> InlineKeyboardMarkup:
     """
     Get organization members and create a keyboard page
     with members and control buttons
@@ -265,9 +274,7 @@ def __create_issue(update: Update):
         imessage, issue_id = __create_new_issue(imessage, repo_id, update)
     else:
         imessage, issue_id = __transfer_exist_issue(imessage, repo_id, issue_id)
-
-    keyboard = __get_keyboard_setup(issue_id)
-    return keyboard, imessage.get_text()
+    return __get_keyboard_setup(issue_id), imessage.get_text()
 
 
 def __create_new_issue(imessage: TgIssueMessage, repo_id: str, update: Update) -> (InlineKeyboardMarkup, str):
@@ -293,13 +300,12 @@ def __transfer_exist_issue(imessage: TgIssueMessage, new_repo_id: str, issue_id:
     r = github.transfer_issue(new_repo_id, issue_id)
 
     imessage.set_issue_url(r['transferIssue']['issue']['url'])
-    issue_new_id = r['transferIssue']['issue']['id']
-    # TODO: Probably this is gitHub bug
-    # Check this: https://github.com/orgs/community/discussions/60896
+    issue_id = r['transferIssue']['issue']['id']
+    # Probably next 2 lines bot works by GitHub bug: https://github.com/orgs/community/discussions/60896
     if len(r['transferIssue']['issue']['assignees']['edges']) != 0:
         imessage.set_assigned(r['transferIssue']['issue']['assignees']['edges'][0]['node']['login'])
     logging.info(f"Succeeded transferred Issue: {r['transferIssue']['issue']['url']}")
-    return imessage, issue_new_id
+    return imessage, issue_id
 
 
 def __set_assign(update: Update) -> (InlineKeyboardMarkup, str):
@@ -307,33 +313,29 @@ def __set_assign(update: Update) -> (InlineKeyboardMarkup, str):
     Get button press with selected member.
     Change assign in GitHub and update bot message.
     """
-    member_id = update.callback_query.data.split('_', 1)[1]
     issue_id = __search_issue_id_in_keyboard(update)
-    imessage = TgIssueMessage(bot_html=update.callback_query.message.text_html)
-
+    member_id = update.callback_query.data.split('_', 1)[1]
     r = github.set_assignee(issue_id, member_id)
 
     new_assigned = r['updateIssue']['issue']['assignees']['edges'][0]['node']['login']
+    imessage = TgIssueMessage(bot_html=update.callback_query.message.text_html)
     imessage.set_assigned(new_assigned)
     logging.info(f'Set assign to {new_assigned}')
-    keyboard = __get_keyboard_setup(issue_id)
-    return keyboard, imessage.get_text()
+    return __get_keyboard_setup(issue_id), imessage.get_text()
 
 
 def __close_issue(update: Update):
     """
     Close issue and update bot message.
     """
-    imessage = TgIssueMessage(bot_html=update.callback_query.message.text_html)
     issue_id = __search_issue_id_in_keyboard(update)
-
     github.close_issue(issue_id)
 
+    imessage = TgIssueMessage(bot_html=update.callback_query.message.text_html)
     text = imessage.get_close_message(update.callback_query.from_user.full_name)
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('🔄 Reopen', callback_data=f'reopen_{issue_id}')]])
 
     logging.info(f'Succeeded closed Issue: {imessage.issue_url}')
-    return keyboard, text
+    return __get_keyboard_reopen(issue_id), text
 
 
 def __reopen_issue(update: Update):
@@ -358,8 +360,7 @@ def __reopen_issue(update: Update):
         threading.Thread(target=github.add_to_scrum, args=(issue_id,)).start()
 
     logging.info(f'Succeeded Reopen Issue: {imessage.issue_url}')
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton('Setup', callback_data=f'setup_{issue_id}')]])
-    return keyboard, imessage.get_text()
+    return __get_keyboard_begin(update), imessage.get_text()
 
 
 def __search_issue_id_in_keyboard(update: Update) -> None | str:
