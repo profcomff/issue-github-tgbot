@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: annndruha/issue-github-telegram-bot:main
+  IMAGE_NAME: annndruha/issue-github-telegram-bot
 
 jobs:
   deploy-production:
