@@ -39,8 +39,8 @@ class Github:
         params = {'repositoryId': repo_id, 'title': title, 'body': body}
         return self.client.execute(self.q_issue_actions, operation_name='CreateIssue', variable_values=params)
 
-    def transfer_issue(self, repo_id, issue_id):
-        params = {'repositoryId': repo_id, 'issueId': issue_id}
+    def transfer_issue(self, new_repo_id, issue_id):
+        params = {'repositoryId': new_repo_id, 'issueId': issue_id}
         return self.client.execute(self.q_issue_actions, operation_name='TransferIssue', variable_values=params)
 
     def get_repos(self, page_info):
@@ -55,14 +55,6 @@ class Github:
             r = self.client.execute(self.q_get_repos, operation_name='GetReposBefore', variable_values=params)
         return r['organization']['repositories']
 
-    def close_issue(self, issue_id):
-        params = {'issueId': issue_id}
-        return self.client.execute(self.q_issue_actions, operation_name='CloseIssue', variable_values=params)
-
-    def reopen_issue(self, issue_id):
-        params = {'issueId': issue_id}
-        return self.client.execute(self.q_issue_actions, operation_name='ReopenIssue', variable_values=params)
-
     def get_members(self, page_info):
         params = {'org': self.settings.GH_ORGANIZATION_NICKNAME}
         if page_info == 'members_start':  # start page
@@ -75,8 +67,16 @@ class Github:
             r = self.client.execute(self.q_get_members, operation_name='GetMembersBefore', variable_values=params)
         return r['organization']['membersWithRole']
 
-    def set_assignee(self, issue_id, assign_to_id):
-        params = {'issueId': issue_id, 'assigneeIds': [assign_to_id]}
+    def close_issue(self, issue_id):
+        params = {'issueId': issue_id}
+        return self.client.execute(self.q_issue_actions, operation_name='CloseIssue', variable_values=params)
+
+    def reopen_issue(self, issue_id):
+        params = {'issueId': issue_id}
+        return self.client.execute(self.q_issue_actions, operation_name='ReopenIssue', variable_values=params)
+
+    def set_assignee(self, issue_id, member_id):
+        params = {'issueId': issue_id, 'assigneeIds': [member_id]}
         return self.client.execute(self.q_issue_actions, operation_name='SetIssueAssign', variable_values=params)
 
     def add_to_scrum(self, node_id):
