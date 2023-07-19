@@ -31,11 +31,11 @@ def error_handler(func):
             await context.bot.answer_callback_query(callback_query_id=update.callback_query.id,
                                                     text='The previous request not done yet.\nPlease wait...')
         except TransportQueryError as err:
-            logging.warning(f'Failed to open Issue: {err}')
+            logging.warning(f'Failed to proceed Issue: {err}')
             if 'type' in err.errors[0]:
                 match err.errors[0]['type']:
                     case 'NOT_FOUND':
-                        text = 'Issue not found'
+                        text = 'Issue not found. Probably deleted.'
                         await update.callback_query.edit_message_text(text=text)
                     case 'FORBIDDEN':
                         text = 'Issue disabled for this repo'
@@ -243,8 +243,11 @@ def __get_keyboard_members(update: Update) -> InlineKeyboardMarkup:
 
     buttons = []
     for member in members['edges']:
+        bt_text = member['node']['login']
+        if member['node']['name'] is not None:
+            bt_text += f" | {member['node']['name']}"
         cb_data = f"assign_{member['node']['id']}"
-        buttons.append([InlineKeyboardButton(member['node']['login'], callback_data=cb_data)])
+        buttons.append([InlineKeyboardButton(bt_text, callback_data=cb_data)])
 
     buttons.append([])
     if members['pageInfo']['hasPreviousPage']:
