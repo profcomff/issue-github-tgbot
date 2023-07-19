@@ -2,6 +2,7 @@ query GetReposInit($org: String!){
     organization(login: $org){
         repositories (
             first: 9,
+            isArchived: false,
             orderBy: {field: PUSHED_AT, direction: DESC}
         ){
             totalCount
@@ -29,6 +30,7 @@ query GetReposAfter($org: String!, $cursor: String!){
         repositories (
             first: 9,
             after: $cursor
+            isArchived: false,
             orderBy: {field: PUSHED_AT, direction: DESC}
         ){
             totalCount
@@ -56,6 +58,7 @@ query GetReposBefore($org: String!, $cursor: String!){
         repositories (
             last: 9,
             before: $cursor
+            isArchived: false,
             orderBy: {field: PUSHED_AT, direction: DESC}
         ){
             totalCount
