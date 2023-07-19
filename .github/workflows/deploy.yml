@@ -34,9 +34,5 @@ jobs:
             --env BOT_NICKNAME='${{ secrets.BOT_NICKNAME }}' \
             --env GH_ACCOUNT_TOKEN='${{ secrets.GH_ACCOUNT_TOKEN }}' \
             --env GH_ORGANIZATION_NICKNAME='${{ vars.GH_ORGANIZATION_NICKNAME }}' \
-            --env GH_SCRUM_STATE='${{ vars.GH_SCRUM_STATE }}' \
-            --env GH_SCRUM_ID='${{ vars.GH_SCRUM_ID }}' \
-            --env GH_SCRUM_FIELD_ID='${{ vars.GH_SCRUM_FIELD_ID }}' \
-            --env GH_SCRUM_FIELD_DEFAULT_STATE='${{ vars.GH_SCRUM_FIELD_DEFAULT_STATE }}' \
             --name ${{ env.CONTAINER_NAME }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
