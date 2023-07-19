@@ -22,13 +22,13 @@ class Github:
         self.__read_queries()
 
     def __read_queries(self):
-        with open('src/graphql/get_repos.graphql') as f:
+        with open('src/graphql/repositories.graphql') as f:
             self.q_get_repos = gql(f.read())
-        with open('src/graphql/get_members.graphql') as f:
+        with open('src/graphql/members.graphql') as f:
             self.q_get_members = gql(f.read())
-        with open('src/graphql/add_to_scrum.graphql') as f:
+        with open('src/graphql/scrum.graphql') as f:
             self.q_add_to_scrum = gql(f.read())
-        with open('src/graphql/issue_actions.graphql') as f:
+        with open('src/graphql/issues.graphql') as f:
             self.q_issue_actions = gql(f.read())
 
     def open_issue(self, repo_id, title, body):
