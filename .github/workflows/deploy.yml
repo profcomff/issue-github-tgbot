@@ -14,7 +14,7 @@ jobs:
   deploy-production:
     name: Deploy Production
     if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: [ self-hosted, Linux ]
+    runs-on: [ self-hosted, Linux, production ]
     environment:
       name: Production
     env:
